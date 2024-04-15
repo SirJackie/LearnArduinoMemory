@@ -7,14 +7,8 @@ extern char *__brkval;
 
 int freeMemory() {
   char top;
-#ifdef __arm__
-  return &top - reinterpret_cast<char*>(sbrk(0));
-#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+  __brkval = 0;  // IF COMMENTED THIS LINE, RETURN VALUE: 2299 => 0!!! (Compiler Optimization maybe.)
   return &top - __brkval;
-#else  // __arm__
-  // return __brkval ? &top - __brkval : &top - __malloc_heap_start;
-  return &top;
-#endif  // __arm__
 }
 
 void setup() {
