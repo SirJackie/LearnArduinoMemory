@@ -12,11 +12,21 @@ unsigned int GetStackTop() {
 }
 
 unsigned int GetHeapBottom() {
-  return (unsigned int) __brkval;
+  if (__brkval == 0) {
+    return (unsigned int)&__heap_start;
+  }
+  else {
+    return (unsigned int) __brkval;
+  }
 }
 
 unsigned int GetHeapTop() {
-  return (unsigned int) __flp;
+  if (__flp == 0) {
+    return (unsigned int)&__heap_start;
+  }
+  else {
+    return (unsigned int) __flp;
+  }
 }
 
 unsigned int GetStaticBottom(){
