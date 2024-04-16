@@ -3,6 +3,36 @@ extern char *__brkval;
 extern char *__flp;
 extern char *__heap_start;
 
+// ATmega 328P Microcontroller's SRAM starts at 256, first available being [256]
+#define GetStaticTop() (256)
+
+unsigned int GetStaticBottom(){
+  // Return the &__heap_start as Static Bottom.
+  return (unsigned int)&__heap_start;
+}
+
+unsigned int GetHeapTop() {
+  if (__flp == 0) {
+    // When no malloc() or new[] was called, __brkval could be 0 (which means FALSE).
+    return (unsigned int)&__heap_start;
+  }
+  else {
+    // Return the __flp as Heap Top.
+    return (unsigned int) __flp;
+  }
+}
+
+unsigned int GetHeapBottom() {
+  if (__brkval == 0) {
+    // When no malloc() or new[] was called, __brkval could be 0 (which means FALSE).
+    return (unsigned int)&__heap_start;
+  }
+  else {
+    // Return the __brkval as Heap Bottom.
+    return (unsigned int) __brkval;
+  }
+}
+
 unsigned int GetStackTop() {
   // Latest Local Variable in Lastest Called Function = Stack Top
   char stackTop;
@@ -11,35 +41,59 @@ unsigned int GetStackTop() {
   return &stackTop - stopOptimization;
 }
 
-unsigned int GetHeapBottom() {
-  if (__brkval == 0) {
-    return (unsigned int)&__heap_start;
-  }
-  else {
-    return (unsigned int) __brkval;
-  }
-}
+// ATmega 328P Microcontroller's SRAM ends at 2304, last available being [2303]
+#define GetStackBottom() (2304)
 
-unsigned int GetHeapTop() {
-  if (__flp == 0) {
-    return (unsigned int)&__heap_start;
-  }
-  else {
-    return (unsigned int) __flp;
-  }
-}
+void ReportMemoryStatus(){
+  unsigned int top, bottom;
 
-unsigned int GetStaticBottom(){
-  return (unsigned int)&__heap_start;
+  // Static Section
+  top = GetStaticTop();
+  bottom = GetStaticBottom();
+  Serial.print(F("Static Section: from "));
+  Serial.print(top);
+  Serial.print(F(" to "));
+  Serial.print(bottom);
+  Serial.print(F(", Total: "));
+  Serial.print(bottom - top);
+
+  // Heap Section
+  top = GetHeapTop();
+  bottom = GetHeapBottom();
+  Serial.print(F("\nHeap Section: from "));
+  Serial.print(top);
+  Serial.print(F(" to "));
+  Serial.print(bottom);
+  Serial.print(F(", Total: "));
+  Serial.print(bottom - top);
+
+  // Free Section
+  top = GetStackTop();
+  // bottom = GetHeapBottom(); // Still
+  Serial.print(F("\nFree Section: from "));
+  Serial.print(bottom);
+  Serial.print(F(" to "));
+  Serial.print(top);
+  Serial.print(F(", Total: "));
+  Serial.print(top - bottom);
+
+  // Stack Section
+  // top = GetStackTop();  // Still
+  bottom = GetStackBottom();
+  Serial.print(F("\nStack Section: from "));
+  Serial.print(top);
+  Serial.print(F(" to "));
+  Serial.print(bottom);
+  Serial.print(F(", Total: "));
+  Serial.print(bottom - top);
+
+  Serial.println(F("\n---------------------------------------------------------"));
 }
 
 void setup() {
   Serial.begin(115200);
 
-  Serial.println(GetStaticBottom());
-  Serial.println(GetHeapBottom());
-  Serial.println(GetHeapTop());
-  Serial.println(F("------------------------"));
+  ReportMemoryStatus();
 
   int* dynaArray = new int[6];
 
@@ -53,24 +107,15 @@ void setup() {
     dynaArray2[i] = 127;
   }
 
-  Serial.println(GetStaticBottom());
-  Serial.println(GetHeapBottom());
-  Serial.println(GetHeapTop());
-  Serial.println(F("------------------------"));
+  ReportMemoryStatus();
 
   delete[] dynaArray;
 
-  Serial.println(GetStaticBottom());
-  Serial.println(GetHeapBottom());
-  Serial.println(GetHeapTop());
-  Serial.println(F("------------------------"));
+  ReportMemoryStatus();
 
   delete[] dynaArray2;
 
-  Serial.println(GetStaticBottom());
-  Serial.println(GetHeapBottom());
-  Serial.println(GetHeapTop());
-  Serial.println(F("------------------------"));
+  ReportMemoryStatus();
 
   /*
   ------------------------
