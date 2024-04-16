@@ -132,13 +132,151 @@ void showMemory(const char *s)
 }
 ```
 
-看完这几种方法，我更迷惑了，好像有很多不同的built-in variable共同declare内存的分布：
+第四种：ChatGPT提供的方法：
 
 ```C++
-extern int *__brkval;
-extern int __malloc_heap_start；
-extern int __heap_start;
-extern int *__flp;
-char __stack = 0; (unsigned int)&__stack;
+extern unsigned int __heap_start;
+extern void *__brkval;
+
+void setup() {
+  Serial.begin(9600);
+  delay(1000);
+
+  // 获取堆顶部地址
+  unsigned int topOfHeap;
+  if ((int)__brkval == 0) {
+    topOfHeap = (unsigned int)&__heap_start;
+  } else {
+    topOfHeap = (unsigned int)__brkval;
+  }
+
+  Serial.print("Top of heap address: 0x");
+  Serial.println(topOfHeap, HEX);
+}
+
+void loop() {
+  // 你的循环代码
+}
+
+```
+
+看完这几种方法，我通过实验，搞明白了：不同的built-in variable和内存分布的关系：
+
+- 有这几个变量：
+
+```C++
+extern char *__brkval;
+extern char *__malloc_heap_start;
+extern char *__heap_start;
+extern char *__flp;
+char stackTop = 0; (unsigned int) &stackTop;
+```
+
+详细解释：
+
+- `__heap_start`: A Seperator, which address is at the top of heap(about 454), which value is 12;
+- `__malloc_heap_start`: A Static Variable, which address is at 258 (Static Variable Section), which value is the top of heap(about 454);
+- `__brkval`: A Counter, which address is at 450(one uint32_t before the top of the heap 454), which value is initialy 0, then becomes the bottom of the heap(468 in this example) after a new[] or malloc() operation.
+
+至于实际运用，可以看看我的这段代码：
+
+```C++
+extern int stopOptimization;
+extern char *__brkval;
+extern char *__malloc_heap_start;
+extern char *__heap_start;
+extern char *__flp;
+
+int GetStackTop() {
+  // Latest Local Variable in Lastest Called Function = Stack Top
+  char stackTop;
+
+  // Must subtract an external int to disable compiler optimization.
+  return &stackTop - stopOptimization;
+}
+
+int GetHeapBottom() {
+  return (unsigned int) __brkval;
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  Serial.println((int) __heap_start);
+  Serial.println((int)&__heap_start);
+  Serial.println((int) __malloc_heap_start);
+  Serial.println((int)&__malloc_heap_start);
+  Serial.println((int) __brkval);
+  Serial.println((int)&__brkval);
+  Serial.println(F("------------------------"));
+
+  int* dynaArray = new int[6];
+
+  for (int i = 0; i < 6; i++){  // No less than 6, otherwise compiler optimization will be triggered.
+    dynaArray[i] = 127;
+  }
+
+  Serial.println((int) __heap_start);
+  Serial.println((int)&__heap_start);
+  Serial.println((int) __malloc_heap_start);
+  Serial.println((int)&__malloc_heap_start);
+  Serial.println((int) __brkval);
+  Serial.println((int)&__brkval);
+  Serial.println(F("------------------------"));
+
+  delete[] dynaArray;
+
+  Serial.println((int) __heap_start);
+  Serial.println((int)&__heap_start);
+  Serial.println((int) __malloc_heap_start);
+  Serial.println((int)&__malloc_heap_start);
+  Serial.println((int) __brkval);
+  Serial.println((int)&__brkval);
+  Serial.println(F("------------------------"));
+
+  /*
+  ** Result:
+  (int) __heap_start
+  (int)&__heap_start
+  (int) __malloc_heap_start
+  (int)&__malloc_heap_start
+  (int) __brkval
+  (int)&__brkval
+  ------------------------
+  12
+  454
+  454
+  258
+  0
+  450
+  ------------------------
+  12
+  454
+  454
+  258
+  468
+  450
+  ------------------------
+  12
+  454
+  454
+  258
+  454
+  450
+  ------------------------
+  __heap_start        : A Seperator, which address is at the top of heap(about 454), which value is 12;
+  __malloc_heap_start : A Static Variable, which address is at 258 (Static Variable Section),
+                        which value is the top of heap(about 454);
+  __brkval            : A Counter, which address is at 450(one uint32_t before the top of the heap 454),
+                        which value is initialy 0, then becomes the bottom of the heap(468 in this example)
+                        after a new[] or malloc() operation.
+  ------------------------
+  */
+}
+
+void loop() {
+
+}
+
 ```
 
