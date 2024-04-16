@@ -1,10 +1,9 @@
 extern int stopOptimization;
 extern char *__brkval;
-extern char *__malloc_heap_start;
-extern char *__heap_start;
 extern char *__flp;
+extern char *__heap_start;
 
-int GetStackTop() {
+unsigned int GetStackTop() {
   // Latest Local Variable in Lastest Called Function = Stack Top
   char stackTop;
 
@@ -12,17 +11,24 @@ int GetStackTop() {
   return &stackTop - stopOptimization;
 }
 
-int GetHeapBottom() {
+unsigned int GetHeapBottom() {
   return (unsigned int) __brkval;
+}
+
+unsigned int GetHeapTop() {
+  return (unsigned int) __flp;
+}
+
+unsigned int GetStaticBottom(){
+  return (unsigned int)&__heap_start;
 }
 
 void setup() {
   Serial.begin(115200);
 
-  Serial.println((int)&__heap_start);
-  Serial.println((int) __brkval);
-  Serial.println((int) __flp);
-  Serial.println((int)&__flp);
+  Serial.println(GetStaticBottom());
+  Serial.println(GetHeapBottom());
+  Serial.println(GetHeapTop());
   Serial.println(F("------------------------"));
 
   int* dynaArray = new int[6];
@@ -37,54 +43,26 @@ void setup() {
     dynaArray2[i] = 127;
   }
 
-  Serial.println((int)&__heap_start);
-  Serial.println((int) __brkval);
-  Serial.println((int) __flp);
-  Serial.println((int)&__flp);
+  Serial.println(GetStaticBottom());
+  Serial.println(GetHeapBottom());
+  Serial.println(GetHeapTop());
   Serial.println(F("------------------------"));
 
   delete[] dynaArray;
 
-  Serial.println((int)&__heap_start);
-  Serial.println((int) __brkval);
-  Serial.println((int) __flp);
-  Serial.println((int)&__flp);
+  Serial.println(GetStaticBottom());
+  Serial.println(GetHeapBottom());
+  Serial.println(GetHeapTop());
   Serial.println(F("------------------------"));
 
   delete[] dynaArray2;
 
-  Serial.println((int)&__heap_start);
-  Serial.println((int) __brkval);
-  Serial.println((int) __flp);
-  Serial.println((int)&__flp);
+  Serial.println(GetStaticBottom());
+  Serial.println(GetHeapBottom());
+  Serial.println(GetHeapTop());
   Serial.println(F("------------------------"));
 
   /*
-  ** Result:
-  (int)&__heap_start
-  (int) __brkval
-  (int) __flp
-  (int)&__flp
-  ------------------------
-  454
-  0
-  0
-  452
-  ------------------------
-  454
-  482
-  0
-  452
-  ------------------------
-  454
-  482
-  454
-  452
-  ------------------------
-  454
-  454
-  0
-  452
   ------------------------
   __heap_start        : A Seperator, which address is at the top of heap(about 454), which value is 12;
   __malloc_heap_start : A Static Variable, which address is at 258 (Static Variable Section),
