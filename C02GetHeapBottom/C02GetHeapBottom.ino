@@ -44,56 +44,70 @@ unsigned int GetStackTop() {
 // ATmega 328P Microcontroller's SRAM ends at 2304, last available being [2303]
 #define GetStackBottom() (2304)
 
-void ReportMemoryStatus(){
+/*
+** ReportMemoryStatus()
+** Input: a message string to signify the current state, will be printed to Serial for inspection.
+**      : MUST BE an F(""), normal string won't work.
+*/
+
+void ReportMemoryStatus(const __FlashStringHelper* msg){
   unsigned int top, bottom;
+
+  // Identify Message
+  Serial.println(msg);
 
   // Static Section
   top = GetStaticTop();
   bottom = GetStaticBottom();
-  Serial.print(F("Static Section: from "));
+  Serial.print(F("Static:\t\t"));
   Serial.print(top);
-  Serial.print(F(" to "));
+  Serial.print(F("\t=>\t"));
   Serial.print(bottom);
-  Serial.print(F(", Total: "));
+  Serial.print(F("\t\t@\t"));
   Serial.print(bottom - top);
 
   // Heap Section
   top = GetHeapTop();
   bottom = GetHeapBottom();
-  Serial.print(F("\nHeap Section: from "));
+  Serial.print(F("\nHeap:\t\t"));
   Serial.print(top);
-  Serial.print(F(" to "));
+  Serial.print(F("\t=>\t"));
   Serial.print(bottom);
-  Serial.print(F(", Total: "));
+  Serial.print(F("\t\t@\t"));
   Serial.print(bottom - top);
 
   // Free Section
   top = GetStackTop();
   // bottom = GetHeapBottom(); // Still
-  Serial.print(F("\nFree Section: from "));
+  Serial.print(F("\nFree:\t\t"));
   Serial.print(bottom);
-  Serial.print(F(" to "));
+  Serial.print(F("\t=>\t"));
   Serial.print(top);
-  Serial.print(F(", Total: "));
+  Serial.print(F("\t\t@\t"));
   Serial.print(top - bottom);
 
   // Stack Section
   // top = GetStackTop();  // Still
   bottom = GetStackBottom();
-  Serial.print(F("\nStack Section: from "));
+  Serial.print(F("\nStack:\t\t"));
   Serial.print(top);
-  Serial.print(F(" to "));
+  Serial.print(F("\t=>\t"));
   Serial.print(bottom);
-  Serial.print(F(", Total: "));
+  Serial.print(F("\t\t@\t"));
   Serial.print(bottom - top);
+  Serial.print(F("\n"));
 
-  Serial.println(F("\n---------------------------------------------------------"));
+  // Seperator
+  for(int i = 0; i < 80; i++){
+    Serial.print(F("-"));
+  }
+  Serial.print(F("\n"));
 }
 
 void setup() {
   Serial.begin(115200);
 
-  ReportMemoryStatus();
+  ReportMemoryStatus(F("Begin:"));
 
   int* dynaArray = new int[6];
 
@@ -107,15 +121,15 @@ void setup() {
     dynaArray2[i] = 127;
   }
 
-  ReportMemoryStatus();
+  ReportMemoryStatus(F("New[]ed:"));
 
   delete[] dynaArray;
 
-  ReportMemoryStatus();
+  ReportMemoryStatus(F("Delete[]d No.1:"));
 
   delete[] dynaArray2;
 
-  ReportMemoryStatus();
+  ReportMemoryStatus(F("Delete[]d No.2:"));
 
   /*
   ------------------------
